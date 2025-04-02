@@ -3,7 +3,10 @@ const player1 = {
   VELOCIDADE: 4,
   MANOBRABILIDADE: 3,
   PODER: 3,
-  PONTOS: 0
+  PONTOS: 0,
+  VITORIAS: 0,
+  PODER_ESPECIAL: "Bola de Fogo",
+  PODER_ESPECIAL_USADO: false
 };
 
 const player2 = {
@@ -11,7 +14,10 @@ const player2 = {
   VELOCIDADE: 3,
   MANOBRABILIDADE: 4,
   PODER: 4,
-  PONTOS: 0
+  PONTOS: 0,
+  VITORIAS: 0,
+  PODER_ESPECIAL: "Raio Verde",
+  PODER_ESPECIAL_USADO: false
 };
 
 async function rollDice() {
@@ -35,6 +41,41 @@ async function getRandomBlock() {
   return result;
 }
 
+async function getRandomItem() {
+  const items = ["Cogumelo", "Casca de Banana", "Estrela", "Casco Verde"];
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+async function useItem(item, character) {
+  switch (item) {
+    case "Cogumelo":
+      character.VELOCIDADE += 2;
+      console.log(`🍄 ${character.NOME} usou Cogumelo! Velocidade aumentada!`);
+      break;
+    case "Estrela":
+      character.PODER += 3;
+      console.log(`⭐ ${character.NOME} usou Estrela! Poder aumentado!`);
+      break;
+    case "Casca de Banana":
+      console.log(`🍌 ${character.NOME} deixou uma casca de banana na pista!`);
+      return Math.random() < 0.5; // 50% de chance do oponente escorregar
+    case "Casco Verde":
+      console.log(`🐢 ${character.NOME} lançou um Casco Verde!`);
+      return Math.random() < 0.7; // 70% de chance de acertar
+  }
+  return false;
+}
+
+async function usePowerSpecial(character) {
+  if (!character.PODER_ESPECIAL_USADO) {
+    console.log(`✨ ${character.NOME} usou seu poder especial: ${character.PODER_ESPECIAL}!`);
+    character.PODER += 5;
+    character.PODER_ESPECIAL_USADO = true;
+    return true;
+  }
+  return false;
+}
+
 async function logRollResult(characterName, block, diceResult, attribute) {
   console.log(
     `${characterName} 🎲 rolou um dado de ${block} ${diceResult} + ${attribute} = ${
@@ -47,15 +88,31 @@ async function playRaceEngine(character1, character2) {
   for (let round = 1; round <= 5; round++) {
     console.log(`🏁 Rodada ${round}`);
 
-    // Sortear bloco
+    // Chance de conseguir item
+    if (Math.random() < 0.3) {
+      const item = await getRandomItem();
+      console.log(`📦 ${character1.NOME} pegou um item: ${item}`);
+      await useItem(item, character1);
+    }
+
+    if (Math.random() < 0.3) {
+      const item = await getRandomItem();
+      console.log(`📦 ${character2.NOME} pegou um item: ${item}`);
+      await useItem(item, character2);
+    }
+
+    // Chance de usar poder especial
+    if (round > 3 && Math.random() < 0.5) {
+      await usePowerSpecial(character1);
+      await usePowerSpecial(character2);
+    }
+
     let block = await getRandomBlock();
     console.log(`Bloco: ${block}`);
 
-    // Rolar os dados
     let diceResult1 = await rollDice();
     let diceResult2 = await rollDice();
 
-    // Teste de habilidade
     let totalTestSkill1 = 0;
     let totalTestSkill2 = 0;
 
@@ -138,17 +195,30 @@ async function playRaceEngine(character1, character2) {
 }
 
 async function declareWinner(character1, character2) {
-    console.log("Resultado final:")
-    console.log(`${character1.NOME}: ${character1.PONTOS} ponto(s)`);
-    console.log(`${character2.NOME}: ${character2.PONTOS} ponto(s)`);
+  console.log("Resultado final:");
+  console.log(`${character1.NOME}: ${character1.PONTOS} ponto(s)`);
+  console.log(`${character2.NOME}: ${character2.PONTOS} ponto(s)`);
 
-    if(character1.PONTOS > character2.PONTOS) 
-        console.log(`\n${character1.NOME} venceu a corrida! Parabéns! 🏆`);
-     else if (character2.PONTOS > character1.PONTOS) 
-        console.log(`\n${character2.NOME} venceu a corrida! Parabéns! 🏆`);
-     else 
-        console.log(`\nA corrida terminou empatada! 🏁`);
-    
+  if (character1.PONTOS > character2.PONTOS) {
+    character1.VITORIAS++;
+    console.log(`\n${character1.NOME} venceu a corrida! Parabéns! 🏆`);
+  } else if (character2.PONTOS > character1.PONTOS) {
+    character2.VITORIAS++;
+    console.log(`\n${character2.NOME} venceu a corrida! Parabéns! 🏆`);
+  } else {
+    console.log(`\nA corrida terminou empatada! 🏁`);
+  }
+
+  console.log("\nPlacar Histórico:");
+  console.log(`${character1.NOME}: ${character1.VITORIAS} vitória(s)`);
+  console.log(`${character2.NOME}: ${character2.VITORIAS} vitória(s)`);
+
+  character1.PODER_ESPECIAL_USADO = false;
+  character2.PODER_ESPECIAL_USADO = false;
+  character1.VELOCIDADE = 4;
+  character2.VELOCIDADE = 3;
+  character1.PODER = 3;
+  character2.PODER = 4;
 }
 
 (async function main() {
